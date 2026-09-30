@@ -40,15 +40,32 @@ app.use('/api/sos', sosRoutes);
 
 // Database connection
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/smart-village';
+const LOCAL_MONGO_URI = 'mongodb://localhost:27017/smart-village';
+const PRIMARY_MONGO_URI = process.env.MONGO_URI || LOCAL_MONGO_URI;
+const FALLBACK_MONGO_URI = LOCAL_MONGO_URI;
+const mongoUris = [PRIMARY_MONGO_URI, FALLBACK_MONGO_URI].filter(Boolean);
 
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Failed to connect to MongoDB', err);
+const startServer = async () => {
+  let lastError = null;
+
+  for (const uri of mongoUris) {
+    try {
+      await mongoose.connect(uri);
+      console.log('Connected to MongoDB');
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+      return;
+    } catch (err) {
+      lastError = err;
+      console.warn(`MongoDB connection failed for ${uri}:`, err.message || err);
+    }
+  }
+
+  console.error('Failed to connect to MongoDB using all configured URIs.', lastError);
+  app.listen(PORT, () => {
+    console.log(`Backend started on port ${PORT} without a database connection. Some features will not work until MongoDB is reachable.`);
   });
+};
+
+startServer();

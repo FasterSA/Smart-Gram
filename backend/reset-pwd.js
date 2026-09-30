@@ -6,7 +6,7 @@ async function run() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     const db = mongoose.connection.db;
-    const phone = '01302801108';
+    const phone = '01302807788';
     
     // Hash new password
     const salt = await bcrypt.genSalt(10);
